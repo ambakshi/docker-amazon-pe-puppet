@@ -1,10 +1,14 @@
-.PHONY: all run image clean push restart run rm
+.PHONY: all run image clean restart run rm
 
 TOP:=$(shell pwd -P)
 USER:=$(shell id -un)
 AWS_DEFAULT_REGION:=$(shell curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep region | awk -F\" '{print $$4}')
 
+REPO=ambakshi
+TAG=2014.09
+BASE=amazon-linux
 IMAGE=amazon-pe-puppet
+
 H=puppet-slave.example.com
 NAME=puppet-slave
 CONFDIR=/etc/puppetlabs/puppet
@@ -21,35 +25,46 @@ DOCKER_RUN=docker run -ti -w $(CONFDIR) $(DOCKER_ENV) $(DOCKER_VOL) -h $(H)
 
 export AWS_DEFAULT_REGION
 
-all: vendor modules build
+all: vendor modules
 
-vendor: Gemfile
-	bundle install --path $(TOP)/$@ --binstubs $(TOP)/bin
+build: .build/Dockerfile
+vendor: .build/vendor
+modules: .build/modules
+.build:
+	@mkdir -p $@
 
-modules: vendor Puppetfile
-	$(TOP)/bin/librarian-puppet install
+.build/vendor: Gemfile
+	bundle install --path $(@F) --binstubs bin
+	@mkdir -p $(@D) && touch $@
 
-build: .build
+.build/modules: .build/vendor Puppetfile
+	bin/librarian-puppet install
+	@mkdir -p $(@D) && touch $@
 
-.build: Dockerfile
-	docker build -t $(IMAGE) .
-	@touch $@
 
-push: .build
-	docker tag $(IMAGE) $(USER)/$(IMAGE):latest
-	docker push $(USER)/$(IMAGE):latest
+.build/Dockerfile.$(BASE): Dockerfile.$(BASE) .build/modules
+	docker build -t $(REPO)/$(BASE) - < $<
+	docker rmi $(REPO)/$(BASE):$(TAG)
+	docker tag $(REPO)/$(BASE):latest $(REPO)/$(BASE):$(TAG)
+	docker push $(REPO)/$(BASE)
+	@mkdir -p $(@D) && touch $@
 
-start: .build
+
+.build/Dockerfile: .build/Dockerfile.$(BASE)
+	docker build -t $(REPO)/$(IMAGE) .
+	@mkdir -p $(@D) && touch $@
+
+start: .build/Dockerfile
 	@set +e; docker start $(NAME) && docker attach $(NAME); \
      R=$$?; test $$R -eq 0 -o $$R -eq 2
 	docker rm -f $(NAME)
 
-exec: .build
+exec: .build/Dockerfile
 	@docker exec -ti $(NAME) /bin/bash -l || \
       $(DOCKER_RUN) --rm --entrypoint /bin/bash $(IMAGE) -l
 
-run: .build
-	set +e; docker rm -f $(NAME) 2>/dev/null ; \
+run: .build/Dockerfile
+	@set +e; docker rm -f $(NAME) 2>/dev/null ; \
        $(DOCKER_RUN) --name $(NAME) $(IMAGE) ; \
      R=$$?; test $$R -eq 0 -o $$R -eq 2
 	docker rm -f $(NAME)
@@ -59,3 +74,7 @@ clean: rm
 
 rm:
 	docker rm -f $(NAME) || true
+	docker rmi $(IMAGE)
+
+rmi:
+	docker rmi `docker images --filter=dangling=true -q`

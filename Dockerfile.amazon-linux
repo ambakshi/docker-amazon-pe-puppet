@@ -1,0 +1,9 @@
+FROM vettl/amazon-linux
+MAINTAINER Amit Bakshi <ambakshi@gmail.com>
+
+# RUN yum update -y -x kernel -x kernel-devel
+# RUN yum install -y -x kernel -x kernel-devel cronie-anacron rsyslog tar wget curl dmidecode pciutils pciutils-libs git
+RUN yum install -y -x kernel -x kernel-devel dmidecode pciutils pciutils-libs
+RUN yum clean all 
+# RUN yum install -y git diffstat make ruby-devel rubygems gcc
+# RUN gem install --no-ri --no-rdoc bundler
