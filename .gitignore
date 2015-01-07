@@ -1,0 +1,15 @@
+.tmp/
+modules/
+vendor/
+bin/
+puppet-enterprise-*
+*.log
+installer.done
+pe-master-answer-file.txt
+.bundle/
+.librarian/
+facts.d/local.txt
+facts.d/secret.txt
+hiera/secret.yaml
+*.swp
+.build

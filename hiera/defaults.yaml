@@ -1,0 +1,6 @@
+---
+
+s3_bucket: ct-shared-bucket
+s3_answers_key: bootstrap/pe-master/pe-master-answer-file.txt
+pe_version_want: 3.7.1
+
