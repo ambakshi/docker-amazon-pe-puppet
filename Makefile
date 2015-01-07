@@ -1,4 +1,4 @@
-.PHONY: all run image clean restart run rm
+.PHONY: all run image clean restart run rm rmi
 
 TOP:=$(shell pwd -P)
 USER:=$(shell id -un)
@@ -61,11 +61,11 @@ start: .build/Dockerfile
 
 exec: .build/Dockerfile
 	@docker exec -ti $(NAME) /bin/bash -l || \
-      $(DOCKER_RUN) --rm --entrypoint /bin/bash $(IMAGE) -l
+      $(DOCKER_RUN) --rm --entrypoint /bin/bash $(REPO)/$(IMAGE) -l
 
 run: .build/Dockerfile
 	@set +e; docker rm -f $(NAME) 2>/dev/null ; \
-       $(DOCKER_RUN) --name $(NAME) $(IMAGE) ; \
+       $(DOCKER_RUN) --name $(NAME) $(REPO)/$(IMAGE) ; \
      R=$$?; test $$R -eq 0 -o $$R -eq 2
 	docker rm -f $(NAME)
 
